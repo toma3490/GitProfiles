@@ -37,7 +37,6 @@ public class MainActivity extends AppCompatActivity{
     private ProgressBar progressBar;
     private Call<ArrayList<GitProfile>> call;
     private FloatingActionButton fab;
-//    private ActivityControl activityControl;
 
     private boolean isLoading = false;
     private boolean isLastPage = false;
@@ -114,7 +113,6 @@ public class MainActivity extends AppCompatActivity{
 
         @Override
         protected Void doInBackground(Void... params) {
-//            activityControl.isInProgress = true;
             apiInterface = ApiUtils.getApi();
             call = apiInterface.getProfiles(Id.getId());
             call.enqueue(new Callback<ArrayList<GitProfile>>() {
