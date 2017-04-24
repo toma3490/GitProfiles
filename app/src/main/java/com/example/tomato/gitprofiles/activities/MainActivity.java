@@ -21,7 +21,7 @@ import com.example.tomato.gitprofiles.utils.Id;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.List;
+import java.util.ArrayList;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -30,13 +30,14 @@ import retrofit2.Response;
 public class MainActivity extends AppCompatActivity{
 
     private ApiInterface apiInterface;
-    private List<GitProfile> gitProfiles;
+    private ArrayList gitProfiles;
     private RecyclerView recyclerView;
     private ProfilesAdapter adapter;
     private LinearLayoutManager layoutManager;
     private ProgressBar progressBar;
-    private Call<List<GitProfile>> call;
+    private Call<ArrayList<GitProfile>> call;
     private FloatingActionButton fab;
+//    private ActivityControl activityControl;
 
     private boolean isLoading = false;
     private boolean isLastPage = false;
@@ -44,8 +45,7 @@ public class MainActivity extends AppCompatActivity{
     private int TOTAL_PAGES = 5;
     private int currentPage = PAGE_START;
 
-    private static final String TAG = "WTF";
-    private static final String KEY_INDEX = "index";
+    private static final String TAG = MainActivity.class.getSimpleName();
     private DownloadGitProfiles downloadGitProfiles;
 
     @Override
@@ -56,9 +56,12 @@ public class MainActivity extends AppCompatActivity{
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         fab = (FloatingActionButton) findViewById(R.id.fab);
 
+        gitProfiles = new ArrayList<>(0);
         recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
+        adapter = new ProfilesAdapter(gitProfiles, MainActivity.this);
+        recyclerView.setAdapter(adapter);
 
         recyclerView.addOnScrollListener(new EndlessScrollListener(layoutManager) {
             @Override
@@ -87,13 +90,8 @@ public class MainActivity extends AppCompatActivity{
             }
         });
 
-        downloadGitProfiles = (DownloadGitProfiles) getLastCustomNonConfigurationInstance();
-
-        if (downloadGitProfiles == null) {
             downloadGitProfiles = new DownloadGitProfiles();
             downloadGitProfiles.execute();
-        }
-
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -106,24 +104,26 @@ public class MainActivity extends AppCompatActivity{
         });
     }
 
-    public class DownloadGitProfiles extends AsyncTask<Void, Void, Void> {
+    private class DownloadGitProfiles extends AsyncTask<Void, Void, Void> {
 
         @Override
         protected void onPreExecute() {
-            dataLoadingState();
+//            dataLoadingState();
+//            activityControl.isInProgress = true;
         }
 
         @Override
         protected Void doInBackground(Void... params) {
+//            activityControl.isInProgress = true;
             apiInterface = ApiUtils.getApi();
             call = apiInterface.getProfiles(Id.getId());
-            call.enqueue(new Callback<List<GitProfile>>() {
+            call.enqueue(new Callback<ArrayList<GitProfile>>() {
                 @Override
-                public void onResponse(Call<List<GitProfile>> call, Response<List<GitProfile>> response) {
+                public void onResponse(Call<ArrayList<GitProfile>> call, Response<ArrayList<GitProfile>> response) {
                     if (response.code() == 200) {
                         gitProfiles = response.body();
-                        adapter = new ProfilesAdapter(gitProfiles, MainActivity.this);
-                        recyclerView.setAdapter(adapter);
+                        adapter.updateProfiles(gitProfiles);
+                        recyclerView.getAdapter().notifyDataSetChanged();
                         String idValue = getNextId(response);
 
                         Id.setId(idValue);
@@ -139,7 +139,7 @@ public class MainActivity extends AppCompatActivity{
                 }
 
                 @Override
-                public void onFailure(Call<List<GitProfile>> call, Throwable t) {
+                public void onFailure(Call<ArrayList<GitProfile>> call, Throwable t) {
                     Log.d(TAG, "onFailure: " + t.getMessage());
                     showErrorDialog(t);
                 }
@@ -148,7 +148,7 @@ public class MainActivity extends AppCompatActivity{
         }
     }
 
-    private String getNextId(Response<List<GitProfile>> response) {
+    private String getNextId(Response<ArrayList<GitProfile>> response) {
         String newUrl = response.headers().get("Link");
         String[] tempStr = newUrl.split(";");
         String url = tempStr[0].replaceAll("[<>]","");
@@ -165,42 +165,33 @@ public class MainActivity extends AppCompatActivity{
     }
 
     private void getNextProfiles() {
-        Call<List<GitProfile>> nextCall = apiInterface.getProfiles(Id.getId());
-        nextCall.enqueue(new Callback<List<GitProfile>>() {
+        Call<ArrayList<GitProfile>> nextCall = apiInterface.getProfiles(Id.getId());
+        nextCall.enqueue(new Callback<ArrayList<GitProfile>>() {
             @Override
-            public void onResponse(Call<List<GitProfile>> call, Response<List<GitProfile>> response) {
+            public void onResponse(Call<ArrayList<GitProfile>> call, Response<ArrayList<GitProfile>> response) {
                 if (response.code() == 200){
                     isLoading = false;
                     gitProfiles.addAll(response.body());
                     recyclerView.getAdapter().notifyDataSetChanged();
-                    Log.d("WTF", "update profiles");
+                    Log.d(TAG, "update profiles");
 
                     Id.setId(getNextId(response));
                     dataLoadedState();
-                    Log.d("WTF", "new id value = " + Id.getId());
+                    Log.d(TAG, "new id value = " + Id.getId());
 
-                    if (currentPage == TOTAL_PAGES) isLastPage = true;
+                    if (currentPage == TOTAL_PAGES){
+                        isLastPage = true;
+                    }
                 } else {
                     showAlertDialog(response);
                 }
             }
 
             @Override
-            public void onFailure(Call<List<GitProfile>> call, Throwable t) {
+            public void onFailure(Call<ArrayList<GitProfile>> call, Throwable t) {
                 showErrorDialog(t);
             }
         });
-    }
-
-    @Override
-    public Object onRetainCustomNonConfigurationInstance() {
-        return downloadGitProfiles;
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-
     }
 
     private void dataLoadedState() {
@@ -221,7 +212,7 @@ public class MainActivity extends AppCompatActivity{
         alertDialog.show();
     }
 
-    private void showAlertDialog(Response<List<GitProfile>> response) {
+    private void showAlertDialog(Response<ArrayList<GitProfile>> response) {
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
         builder.setMessage(response.message());
         builder.setPositiveButton(R.string.ok, null);

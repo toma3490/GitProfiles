@@ -8,8 +8,4 @@ public class ApiUtils {
     public static ApiInterface getApi(){
         return RetrofitClient.getClient(BASE_URL).create(ApiInterface.class);
     }
-
-    public static void setBaseUrl(String baseUrl) {
-        BASE_URL = baseUrl;
-    }
 }

@@ -12,11 +12,11 @@ import com.example.tomato.gitprofiles.R;
 import com.example.tomato.gitprofiles.model.GitProfile;
 import com.squareup.picasso.Picasso;
 
-import java.util.List;
+import java.util.ArrayList;
 
 public class ProfilesAdapter extends RecyclerView.Adapter<ProfilesAdapter.ViewHolder> {
 
-    private List<GitProfile> profiles;
+    private ArrayList<GitProfile> profiles;
     private Context context;
     private LayoutInflater layoutInflater;
 
@@ -35,7 +35,7 @@ public class ProfilesAdapter extends RecyclerView.Adapter<ProfilesAdapter.ViewHo
         }
     }
 
-    public ProfilesAdapter(List<GitProfile> profiles, Context context) {
+    public ProfilesAdapter(ArrayList<GitProfile> profiles, Context context) {
         layoutInflater = LayoutInflater.from(context);
         this.profiles = profiles;
         this.context = context;
@@ -59,8 +59,8 @@ public class ProfilesAdapter extends RecyclerView.Adapter<ProfilesAdapter.ViewHo
 
     @Override
     public int getItemCount() {
-        return profiles.size();
-//        return (null != profiles ? profiles.size() : 0);
+//        return profiles.size();
+        return (null != profiles ? profiles.size() : 0);
     }
 
     @Override
@@ -68,12 +68,12 @@ public class ProfilesAdapter extends RecyclerView.Adapter<ProfilesAdapter.ViewHo
         super.onAttachedToRecyclerView(recyclerView);
     }
 
-    public void updateProfiles(List<GitProfile> profiles){
+    public void updateProfiles(ArrayList<GitProfile> profiles){
         this.profiles = profiles;
         notifyDataSetChanged();
     }
 
-    public void clearProfiles(List<GitProfile> profiles){
+    public void clearProfiles(ArrayList<GitProfile> profiles){
         profiles.clear();
         notifyDataSetChanged();
     }
