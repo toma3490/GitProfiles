@@ -1,6 +1,5 @@
 package com.example.tomato.gitprofiles.activities;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AlertDialog;
@@ -28,24 +27,18 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity{
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     private ApiInterface apiInterface;
-    private ArrayList gitProfiles;
-    private RecyclerView recyclerView;
     private ProfilesAdapter adapter;
-    private LinearLayoutManager layoutManager;
     private ProgressBar progressBar;
-    private Call<ArrayList<GitProfile>> call;
     private FloatingActionButton fab;
 
-    private boolean isLoading = false;
-    private boolean isLastPage = false;
+    private boolean isLoading;
+    private boolean isLastPage;
     private static final int PAGE_START = 0;
     private int TOTAL_PAGES = 5;
     private int currentPage = PAGE_START;
-
-    private static final String TAG = MainActivity.class.getSimpleName();
-    private DownloadGitProfiles downloadGitProfiles;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,11 +48,10 @@ public class MainActivity extends AppCompatActivity{
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         fab = (FloatingActionButton) findViewById(R.id.fab);
 
-        gitProfiles = new ArrayList<>(0);
-        recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        layoutManager = new LinearLayoutManager(this);
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
-        adapter = new ProfilesAdapter(gitProfiles, MainActivity.this);
+        adapter = new ProfilesAdapter(this);
         recyclerView.setAdapter(adapter);
 
         recyclerView.addOnScrollListener(new EndlessScrollListener(layoutManager) {
@@ -89,61 +81,43 @@ public class MainActivity extends AppCompatActivity{
             }
         });
 
-            downloadGitProfiles = new DownloadGitProfiles();
-            downloadGitProfiles.execute();
+        apiInterface = ApiUtils.getApi();
+        Call<ArrayList<GitProfile>> call = apiInterface.getProfiles(Id.getId());
+        call.enqueue(new Callback<ArrayList<GitProfile>>() {
+            @Override
+            public void onResponse(Call<ArrayList<GitProfile>> call, Response<ArrayList<GitProfile>> response) {
+                if (response.code() == 200) {
+                    adapter.updateProfiles(response.body());
+                    String idValue = getNextId(response);
+
+                    Id.setId(idValue);
+                    Log.d(TAG, "id value = " + idValue);
+                    Log.d(TAG, "response message " + response.message());
+                    isLoading = false;
+
+                    if (currentPage == TOTAL_PAGES) isLastPage = true;
+                    dataLoadedState();
+                }else{
+                    showAlertDialog(response);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ArrayList<GitProfile>> call, Throwable t) {
+                Log.d(TAG, "onFailure: " + t.getMessage());
+                showErrorDialog(t);
+            }
+        });
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                adapter.clearProfiles(gitProfiles);
+                adapter.clearProfiles();
                 Id.setId("0");
                 getNextProfiles();
                 dataLoadingState();
             }
         });
-    }
-
-    private class DownloadGitProfiles extends AsyncTask<Void, Void, Void> {
-
-        @Override
-        protected void onPreExecute() {
-//            dataLoadingState();
-//            activityControl.isInProgress = true;
-        }
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            apiInterface = ApiUtils.getApi();
-            call = apiInterface.getProfiles(Id.getId());
-            call.enqueue(new Callback<ArrayList<GitProfile>>() {
-                @Override
-                public void onResponse(Call<ArrayList<GitProfile>> call, Response<ArrayList<GitProfile>> response) {
-                    if (response.code() == 200) {
-                        gitProfiles = response.body();
-                        adapter.updateProfiles(gitProfiles);
-                        recyclerView.getAdapter().notifyDataSetChanged();
-                        String idValue = getNextId(response);
-
-                        Id.setId(idValue);
-                        Log.d(TAG, "id value = " + idValue);
-                        Log.d(TAG, "response message " + response.message());
-                        isLoading = false;
-
-                        if (currentPage == TOTAL_PAGES) isLastPage = true;
-                        dataLoadedState();
-                    }else{
-                        showAlertDialog(response);
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<ArrayList<GitProfile>> call, Throwable t) {
-                    Log.d(TAG, "onFailure: " + t.getMessage());
-                    showErrorDialog(t);
-                }
-            });
-            return null;
-        }
     }
 
     private String getNextId(Response<ArrayList<GitProfile>> response) {
@@ -169,8 +143,7 @@ public class MainActivity extends AppCompatActivity{
             public void onResponse(Call<ArrayList<GitProfile>> call, Response<ArrayList<GitProfile>> response) {
                 if (response.code() == 200){
                     isLoading = false;
-                    gitProfiles.addAll(response.body());
-                    recyclerView.getAdapter().notifyDataSetChanged();
+                    adapter.addProfiles(response.body());
                     Log.d(TAG, "update profiles");
 
                     Id.setId(getNextId(response));
