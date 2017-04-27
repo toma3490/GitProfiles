@@ -17,7 +17,7 @@ import java.util.ArrayList;
 public class ProfilesAdapter extends RecyclerView.Adapter<ProfilesAdapter.ViewHolder> {
 
     private ArrayList<GitProfile> profiles;
-    private Context context;
+    private Picasso picasso;
     private LayoutInflater layoutInflater;
 
     static class ViewHolder extends RecyclerView.ViewHolder{
@@ -35,10 +35,10 @@ public class ProfilesAdapter extends RecyclerView.Adapter<ProfilesAdapter.ViewHo
         }
     }
 
-    public ProfilesAdapter(ArrayList<GitProfile> profiles, Context context) {
+    public ProfilesAdapter(Context context) {
         layoutInflater = LayoutInflater.from(context);
-        this.profiles = profiles;
-        this.context = context;
+        this.profiles = new ArrayList<>();
+        this.picasso = Picasso.with(context);
     }
 
     @Override
@@ -51,16 +51,15 @@ public class ProfilesAdapter extends RecyclerView.Adapter<ProfilesAdapter.ViewHo
         GitProfile profile = profiles.get(position);
         holder.profileUrl.setText(profile.getHtmlUrl());
         holder.login.setText(profile.getLogin());
-        Picasso.with(context).load(profile.getAvatarUrl())
-                .error(R.drawable.placeholder)
-                .placeholder(R.drawable.placeholder)
-                .into(holder.avatar);
+        picasso.load(profile.getAvatarUrl())
+            .error(R.drawable.placeholder)
+            .placeholder(R.drawable.placeholder)
+            .into(holder.avatar);
     }
 
     @Override
     public int getItemCount() {
-//        return profiles.size();
-        return (null != profiles ? profiles.size() : 0);
+        return profiles.size();
     }
 
     @Override
@@ -69,13 +68,20 @@ public class ProfilesAdapter extends RecyclerView.Adapter<ProfilesAdapter.ViewHo
     }
 
     public void updateProfiles(ArrayList<GitProfile> profiles){
-        this.profiles = profiles;
+        this.profiles.clear();
+        this.profiles.addAll(profiles);
         notifyDataSetChanged();
     }
 
-    public void clearProfiles(ArrayList<GitProfile> profiles){
-        profiles.clear();
+    public void clearProfiles(){
+        this.profiles.clear();
         notifyDataSetChanged();
+    }
+
+    public void addProfiles(ArrayList<GitProfile> profiles){
+        int start = this.profiles.size();
+        this.profiles.addAll(profiles);
+        notifyItemRangeInserted(start, profiles.size());
     }
 
 }
